@@ -47,7 +47,7 @@ class StackUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Stack Visualizer (Car Parking)")
-        self.root.geometry("900x750") 
+        self.root.geometry("1200x750") # Increased width to accommodate the right panel
         self.root.configure(bg="#f0f0f0")
 
         # Initialize Stacks
@@ -55,16 +55,33 @@ class StackUI:
         self.temp_stack = Stack()  # Auxiliary/Temporary Lane
         self.MAX_CAPACITY = 8 
 
+        # --- Main Layout Container ---
+        self.main_container = tk.Frame(self.root, bg="#f0f0f0")
+        self.main_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # --- Left Panel (Visualization & Controls) ---
+        self.left_panel = tk.Frame(self.main_container, bg="#f0f0f0")
+        self.left_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
+
+        # --- Right Panel (Dashboard) ---
+        self.right_panel = tk.Frame(self.main_container, bg="white", width=350, relief=tk.RIDGE, bd=1)
+        self.right_panel.pack(side=tk.RIGHT, fill=tk.Y)
+        self.right_panel.pack_propagate(False) # Prevent shrinking
+
+        # ==========================================
+        # LEFT PANEL CONTENT
+        # ==========================================
+
         # Title
         tk.Label(
-            self.root, 
+            self.left_panel, 
             text="Stack Parking Simulation", 
             font=("Arial", 20, "bold"), 
             bg="#f0f0f0"
         ).pack(pady=10)
 
         # --- Controls Frame ---
-        control_frame = tk.Frame(self.root, bg="#d9d9d9", padx=10, pady=10)
+        control_frame = tk.Frame(self.left_panel, bg="#d9d9d9", padx=10, pady=10)
         control_frame.pack(fill=tk.X, padx=20, pady=10)
 
         # Row 1: Push Operations
@@ -93,10 +110,55 @@ class StackUI:
         self.info_label.pack(anchor="w", pady=5)
 
         # --- Canvas for Visualization ---
-        self.canvas = tk.Canvas(self.root, bg="white", highlightthickness=1, highlightbackground="black")
+        self.canvas = tk.Canvas(self.left_panel, bg="white", highlightthickness=1, highlightbackground="black")
         self.canvas.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
         
         self.canvas.bind("<Configure>", lambda event: self.update_display())
+
+        # ==========================================
+        # RIGHT PANEL CONTENT (DASHBOARD)
+        # ==========================================
+
+        tk.Label(
+            self.right_panel, 
+            text="PARKING DASHBOARD", 
+            font=("Arial", 14, "bold"), 
+            bg="white",
+            fg="#333"
+        ).pack(pady=(20, 15))
+
+        # Treeview Styles
+        style = ttk.Style()
+        style.configure("Treeview.Heading", font=("Arial", 10, "bold"))
+        style.configure("Treeview", font=("Arial", 10), rowheight=25)
+
+        # Dashboard Table
+        columns = ("Slot", "Plate", "Arrivals", "Departures")
+        self.dashboard_tree = ttk.Treeview(self.right_panel, columns=columns, show="headings", selectmode="none")
+        
+        # Define Columns
+        self.dashboard_tree.heading("Slot", text="Slot")
+        self.dashboard_tree.column("Slot", width=50, anchor="center")
+        
+        self.dashboard_tree.heading("Plate", text="Plate Number")
+        self.dashboard_tree.column("Plate", width=120, anchor="center")
+        
+        self.dashboard_tree.heading("Arrivals", text="Arr")
+        self.dashboard_tree.column("Arrivals", width=50, anchor="center")
+
+        self.dashboard_tree.heading("Departures", text="Dep")
+        self.dashboard_tree.column("Departures", width=50, anchor="center")
+
+        # Scrollbar for Dashboard
+        dash_scroll = ttk.Scrollbar(self.right_panel, orient="vertical", command=self.dashboard_tree.yview)
+        self.dashboard_tree.configure(yscrollcommand=dash_scroll.set)
+        
+        self.dashboard_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 0), pady=10)
+        dash_scroll.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 10), pady=10)
+
+    # ==========================================
+    # LOGIC
+    # ==========================================
 
     def draw_car(self, car, x_center, y_bottom, car_width=200, car_height=50):
         start_x = x_center - (car_width // 2)
@@ -147,10 +209,26 @@ class StackUI:
         ) # type: ignore
         self.canvas.create_text(x_center, bottom_y + 20, text=label, fill="#555555", font=("Arial", 10, "bold"))
 
+    def update_dashboard(self):
+        """Updates the Treeview in the right panel with current stack data."""
+        # Clear existing items
+        for item in self.dashboard_tree.get_children():
+            self.dashboard_tree.delete(item)
+        
+        # Populate with current stack items
+        # We iterate in reverse to show the "Top" of the stack at the top of the list
+        current_size = self.stack.size()
+        for i, car in enumerate(reversed(self.stack.stack)):
+            slot_number = current_size - i
+            self.dashboard_tree.insert("", "end", values=(slot_number, car.plate_number, car.arrivals, car.departures))
+
     def update_display(self):
         self.canvas.delete("all")
         self.info_label.config(text=f"Total Cars: {self.stack.size()} / {self.MAX_CAPACITY}")
         
+        # Update Dashboard
+        self.update_dashboard()
+
         w = self.canvas.winfo_width()
         h = self.canvas.winfo_height()
         if h < 100: h = 500
