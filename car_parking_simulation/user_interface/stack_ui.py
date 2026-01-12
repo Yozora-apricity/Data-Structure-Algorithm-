@@ -47,7 +47,7 @@ class StackUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Stack Visualizer (Car Parking)")
-        self.root.geometry("1200x750") # Increased width to accommodate the right panel
+        self.root.geometry("1200x750") 
         self.root.configure(bg="#f0f0f0")
 
         # Initialize Stacks
@@ -66,7 +66,7 @@ class StackUI:
         # --- Right Panel (Dashboard) ---
         self.right_panel = tk.Frame(self.main_container, bg="white", width=350, relief=tk.RIDGE, bd=1)
         self.right_panel.pack(side=tk.RIGHT, fill=tk.Y)
-        self.right_panel.pack_propagate(False) # Prevent shrinking
+        self.right_panel.pack_propagate(False) 
 
         # ==========================================
         # LEFT PANEL CONTENT
@@ -211,12 +211,10 @@ class StackUI:
 
     def update_dashboard(self):
         """Updates the Treeview in the right panel with current stack data."""
-        # Clear existing items
         for item in self.dashboard_tree.get_children():
             self.dashboard_tree.delete(item)
         
         # Populate with current stack items
-        # We iterate in reverse to show the "Top" of the stack at the top of the list
         current_size = self.stack.size()
         for i, car in enumerate(reversed(self.stack.stack)):
             slot_number = current_size - i
@@ -288,6 +286,8 @@ class StackUI:
     def pop_car(self):
         car = self.stack.pop()
         if car:
+            # UPDATE: Manual departure counts as a departure
+            car.departures += 1
             messagebox.showinfo("Departed", f"Car {car.plate_number} departed.")
             self.update_display()
         else:
@@ -308,7 +308,6 @@ class StackUI:
         while not self.stack.isEmpty():
             top_car = self.stack.peek()
             
-            # --- FIX 1: Explicit check if peek returns None ---
             if top_car is None:
                 break
             
@@ -317,7 +316,9 @@ class StackUI:
                 break 
             else:
                 moving_car = self.stack.pop()
-                if moving_car: # Safety check
+                if moving_car: 
+                    # UPDATE: Moving to temp lane counts as physical departure
+                    moving_car.departures += 1
                     self.temp_stack.push(moving_car)
                 
                 self.update_display()
@@ -326,8 +327,9 @@ class StackUI:
 
         if found:
             removed_car = self.stack.pop()
-            # --- FIX 2: Explicit check before accessing property ---
             if removed_car:
+                # Permanent departure
+                removed_car.departures += 1
                 messagebox.showinfo("Found", f"Car {removed_car.plate_number} is leaving now.")
             
             self.update_display()
@@ -338,7 +340,9 @@ class StackUI:
 
         while not self.temp_stack.isEmpty():
             return_car = self.temp_stack.pop()
-            if return_car: # Safety check
+            if return_car: 
+                # UPDATE: Returning to main lane counts as re-arrival
+                return_car.arrivals += 1
                 self.stack.push(return_car)
             
             self.update_display()
