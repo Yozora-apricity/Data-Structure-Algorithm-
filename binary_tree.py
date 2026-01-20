@@ -55,9 +55,9 @@ class BinaryTreeOrder:
             left_idx = 2 * i + 1
             right_idx = 2 * i + 2
             if left_idx < len(nodes):
-                nodes[i].left = nodes[left_idx]
+                nodes[i].left = nodes[left_idx] # type: ignore
             if right_idx < len(nodes):
-                nodes[i].right = nodes[right_idx]
+                nodes[i].right = nodes[right_idx] # type: ignore
         self.root = nodes[0]
 
 # --- BINARY TREE  UI ---
