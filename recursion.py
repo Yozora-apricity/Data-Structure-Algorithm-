@@ -24,11 +24,13 @@ BLACK = (0, 0, 0)
 GRAY = (50, 50, 50)
 LIGHT_GRAY = (200, 200, 200)
 DARK_GRAY = (40, 40, 40)
-HOVER_COLOR = (100, 100, 100) # Lighter gray for hover effect
-GREEN = (0, 255, 0)
-CYAN = (0, 255, 255)
+NAVY = (26, 35, 126)
+SLATE = (44, 62, 80)
+HOVER_COLOR = (227, 242, 253)
+GREEN = (0, 150, 0)
+CYAN = (0, 100, 150)
 ORANGE = (255, 165, 0)
-RED = (255, 50, 50)
+RED = (183, 28, 28)
 
 class Plates:
     def __init__(self):
@@ -71,11 +73,11 @@ class Tower:
             "Third Tower": (SCREEN_WIDTH * 3) // 4
         }
         
-        self.font = pygame.font.SysFont("Arial", 20, bold=True)
-        self.ui_font = pygame.font.SysFont("Arial", 20)
+        self.font = pygame.font.SysFont("Georgia", 20, bold=True)
+        self.ui_font = pygame.font.SysFont("Georgia", 20)
         
         # Static Text
-        self.static_ui_text = self.ui_font.render("[R] Reset | [Q] Quit", True, WHITE)
+        self.static_ui_text = self.ui_font.render("[R] Reset | [Q] Quit", True, SLATE)
         self.plate_text_cache = {} 
         
         # --- UI LAYOUT ---
@@ -91,20 +93,15 @@ class Tower:
         return self.peg_positions[tower_name]
 
     def render_background_snapshot(self):
-        """
-        Draws the static parts (Floor, Pegs, Static Plates) to a surface.
-        We do NOT draw buttons here anymore, so they can animate on hover.
-        """
         surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        surface.fill((30, 30, 30)) 
-        
+        surface.fill(WHITE)
         # Draw Floor
-        pygame.draw.rect(surface, LIGHT_GRAY, (0, SCREEN_HEIGHT - BASE_HEIGHT, SCREEN_WIDTH, BASE_HEIGHT))
+        pygame.draw.rect(surface, SLATE, (0, SCREEN_HEIGHT - BASE_HEIGHT, SCREEN_WIDTH, BASE_HEIGHT))
 
         # Draw Pegs and Static Plates
         for tower_name, x_pos in self.peg_positions.items():
             peg_height = 400
-            pygame.draw.rect(surface, LIGHT_GRAY, (x_pos - PEG_WIDTH//2, PEG_Y - peg_height, PEG_WIDTH, peg_height))
+            pygame.draw.rect(surface, SLATE, (x_pos - PEG_WIDTH//2, PEG_Y - peg_height, PEG_WIDTH, peg_height))
             
             plates = self.towers[tower_name]
             for i, plate_value in enumerate(plates):
@@ -121,34 +118,31 @@ class Tower:
         mouse_pos = pygame.mouse.get_pos()
         
         # 1. Move Counter
-        moves_text = self.ui_font.render(f"Moves: {move_count}", True, CYAN)
+        moves_text = self.ui_font.render(f"Moves: {move_count}", True, NAVY)
         self.screen.blit(moves_text, (20, 20))
         
         # 2. Speed Buttons with Hover Animation
-        # Down Button [-]
-        color_down = HOVER_COLOR if self.btn_speed_down.collidepoint(mouse_pos) else DARK_GRAY
+        color_down = HOVER_COLOR if self.btn_speed_down.collidepoint(mouse_pos) else LIGHT_GRAY
         pygame.draw.rect(self.screen, color_down, self.btn_speed_down)
-        pygame.draw.rect(self.screen, WHITE, self.btn_speed_down, 1)
-        txt_minus = self.ui_font.render("-", True, WHITE)
+        pygame.draw.rect(self.screen, SLATE, self.btn_speed_down, 1)
+        txt_minus = self.ui_font.render("-", True, BLACK)
         self.screen.blit(txt_minus, (self.btn_speed_down.centerx - txt_minus.get_width()//2, self.btn_speed_down.y + 2))
 
-        # Up Button [+]
-        color_up = HOVER_COLOR if self.btn_speed_up.collidepoint(mouse_pos) else DARK_GRAY
+        color_up = HOVER_COLOR if self.btn_speed_up.collidepoint(mouse_pos) else LIGHT_GRAY
         pygame.draw.rect(self.screen, color_up, self.btn_speed_up)
-        pygame.draw.rect(self.screen, WHITE, self.btn_speed_up, 1)
-        txt_plus = self.ui_font.render("+", True, WHITE)
+        pygame.draw.rect(self.screen, SLATE, self.btn_speed_up, 1)
+        txt_plus = self.ui_font.render("+", True, BLACK)
         self.screen.blit(txt_plus, (self.btn_speed_up.centerx - txt_plus.get_width()//2, self.btn_speed_up.y + 2))
         
-        # 3. Speed Text (Positioned to the RIGHT of buttons to avoid overlap)
-        txt_speed = self.ui_font.render(f"Speed: {speed_label}", True, WHITE)
-        # Position text at x=120 (right of the up button)
+        # 3. Speed Text
+        txt_speed = self.ui_font.render(f"Speed: {speed_label}", True, SLATE)
         self.screen.blit(txt_speed, (120, 65)) 
 
         # 4. Skip Button
-        color_skip = HOVER_COLOR if self.btn_skip.collidepoint(mouse_pos) else DARK_GRAY
+        color_skip = HOVER_COLOR if self.btn_skip.collidepoint(mouse_pos) else LIGHT_GRAY
         pygame.draw.rect(self.screen, color_skip, self.btn_skip)
-        pygame.draw.rect(self.screen, WHITE, self.btn_skip, 1)
-        txt_skip = self.ui_font.render("SKIP TO RESULT", True, ORANGE)
+        pygame.draw.rect(self.screen, SLATE, self.btn_skip, 1)
+        txt_skip = self.ui_font.render("SKIP TO RESULT", True, RED)
         self.screen.blit(txt_skip, (self.btn_skip.centerx - txt_skip.get_width()//2, self.btn_skip.y + 4))
 
     def draw_full_scene(self, background_surf, move_count, speed_label):
@@ -327,12 +321,12 @@ class Logic:
         return result
 
 def get_user_input_gui(screen):
-    font = pygame.font.SysFont("Arial", 40)
-    font_small = pygame.font.SysFont("Arial", 24)
-    font_error = pygame.font.SysFont("Arial", 20, bold=True)
+    font = pygame.font.SysFont("Georgia", 40)
+    font_small = pygame.font.SysFont("Georgia", 24)
+    font_error = pygame.font.SysFont("Georgia", 20, bold=True)
     
     input_value = ""
-    error_msg = "" # Store error text here
+    error_msg = ""
     clock = pygame.time.Clock()
     
     numpad_map = {
@@ -342,10 +336,10 @@ def get_user_input_gui(screen):
     }
     
     while True:
-        screen.fill((30, 30, 30))
-        title = font.render("Tower of Hanoi", True, WHITE)
-        prompt = font_small.render("Type how many plates (3-8)", True, GREEN)
-        prompt2 = font_small.render("Press ENTER to start", True, GREEN)
+        screen.fill(WHITE)
+        title = font.render("TOWER OF HANOI", True, NAVY)
+        prompt = font_small.render("Type how many plates (3-8)", True, SLATE)
+        prompt2 = font_small.render("Press ENTER to start", True, SLATE)
         current = font.render(f"Plates: {input_value}", True, CYAN)
         
         screen.blit(title, (SCREEN_WIDTH//2 - title.get_width()//2, 150))
@@ -353,7 +347,6 @@ def get_user_input_gui(screen):
         screen.blit(prompt2, (SCREEN_WIDTH//2 - prompt2.get_width()//2, 300))
         screen.blit(current, (SCREEN_WIDTH//2 - current.get_width()//2, 400))
         
-        # --- ERROR MESSAGE DISPLAY ---
         if error_msg:
             err_surf = font_error.render(error_msg, True, RED)
             screen.blit(err_surf, (SCREEN_WIDTH//2 - err_surf.get_width()//2, 450))
@@ -425,12 +418,13 @@ def main():
             label = animation.speed_labels[animation.current_speed_idx]
             tower.draw_full_scene(bg, logic.move_count, label)
             
-            font = pygame.font.SysFont("Arial", 50, bold=True)
+            font = pygame.font.SysFont("Georgia", 50, bold=True)
             text = font.render("Complete! Press R or Q", True, GREEN)
             
             bg_rect = text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 25))
             bg_rect.inflate_ip(20, 20)
-            pygame.draw.rect(screen, BLACK, bg_rect)
+            pygame.draw.rect(screen, WHITE, bg_rect)
+            pygame.draw.rect(screen, SLATE, bg_rect, 2)
             screen.blit(text, (SCREEN_WIDTH//2 - text.get_width()//2, SCREEN_HEIGHT//2 - 50))
             
             pygame.display.flip()
