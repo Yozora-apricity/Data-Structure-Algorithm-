@@ -46,25 +46,32 @@ class Stack:
 class StackUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Stack Visualizer (Car Parking)")
+        self.root.title("Stack Parking Simulation (LIFO)")
         self.root.geometry("1200x750") 
-        self.root.configure(bg="#f0f0f0")
+        
+        # --- FORMAL LIGHT PALETTE ---
+        self.bg_main = "#F0F2F5"    # Soft Light Grey
+        self.bg_white = "#FFFFFF"   # Pure White
+        self.fg_navy = "#1A237E"    # Deep Navy
+        self.fg_slate = "#2C3E50"   # Dark Slate
+        
+        self.root.configure(bg=self.bg_main)
 
         # Initialize Stacks
         self.stack = Stack()       # Main Parking Lane
         self.temp_stack = Stack()  # Auxiliary/Temporary Lane
-        self.MAX_CAPACITY = 8 
+        self.MAX_CAPACITY = 10
 
         # --- Main Layout Container ---
-        self.main_container = tk.Frame(self.root, bg="#f0f0f0")
+        self.main_container = tk.Frame(self.root, bg=self.bg_main)
         self.main_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # --- Left Panel (Visualization & Controls) ---
-        self.left_panel = tk.Frame(self.main_container, bg="#f0f0f0")
+        self.left_panel = tk.Frame(self.main_container, bg=self.bg_main)
         self.left_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
 
         # --- Right Panel (Dashboard) ---
-        self.right_panel = tk.Frame(self.main_container, bg="white", width=350, relief=tk.RIDGE, bd=1)
+        self.right_panel = tk.Frame(self.main_container, bg=self.bg_white, width=350, relief=tk.RIDGE, bd=1)
         self.right_panel.pack(side=tk.RIGHT, fill=tk.Y)
         self.right_panel.pack_propagate(False) 
 
@@ -75,42 +82,65 @@ class StackUI:
         # Title
         tk.Label(
             self.left_panel, 
-            text="Stack Parking Simulation", 
-            font=("Arial", 20, "bold"), 
-            bg="#f0f0f0"
+            text="LIFO STACK PARKING SIMULATION", 
+            font=("Georgia", 20, "bold"), 
+            bg=self.bg_main,
+            fg=self.fg_navy
         ).pack(pady=10)
 
         # --- Controls Frame ---
-        control_frame = tk.Frame(self.left_panel, bg="#d9d9d9", padx=10, pady=10)
+        control_frame = tk.Frame(self.left_panel, bg=self.bg_white, padx=10, pady=10, bd=1, relief="ridge")
         control_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        # Button Style
+        btn_style = {
+            "font": ("Georgia", 9, "bold"),
+            "bg": self.bg_white,
+            "fg": self.fg_slate,
+            "bd": 4,
+            "relief": "raised",
+            "cursor": "hand2"
+        }
 
         # Row 1: Push Operations
-        row1 = tk.Frame(control_frame, bg="#d9d9d9")
-        row1.pack(fill=tk.X, pady=5)
+        row1 = tk.Frame(control_frame, bg=self.bg_white)
+        row1.pack(anchor="center", pady=5)
         
-        tk.Label(row1, text="Plate:", bg="#d9d9d9").pack(side=tk.LEFT)
-        self.plate_entry = ttk.Entry(row1, width=15)
+        tk.Label(row1, text="Plate:", bg=self.bg_white, font=("Georgia", 10), fg=self.fg_slate).pack(side=tk.LEFT, padx=5)
+        self.plate_entry = tk.Entry(row1, width=15, font=("Georgia", 10), bd=2)
         self.plate_entry.pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(row1, text="Arrive (Manual)", command=self.push_manual).pack(side=tk.LEFT, padx=5)
-        ttk.Button(row1, text="Arrive (Random)", command=self.push_random).pack(side=tk.LEFT, padx=5)
+        tk.Button(row1, text="Arrive (Manual)", command=self.push_manual, **btn_style).pack(side=tk.LEFT, padx=5)
+        tk.Button(row1, text="Arrive (Random)", command=self.push_random, **btn_style).pack(side=tk.LEFT, padx=5)
 
         # Row 2: Pop/Remove Operations
-        row2 = tk.Frame(control_frame, bg="#d9d9d9")
-        row2.pack(fill=tk.X, pady=5)
+        row2 = tk.Frame(control_frame, bg=self.bg_white)
+        row2.pack(anchor="center", pady=5)
 
-        ttk.Button(row2, text="Depart (Pop Top)", command=self.pop_car).pack(side=tk.LEFT, padx=5)
+        tk.Button(row2, text="Depart (Pop Top)", command=self.pop_car, **btn_style).pack(side=tk.LEFT, padx=5)
         
-        self.remove_entry = ttk.Entry(row2, width=15)
-        self.remove_entry.pack(side=tk.LEFT, padx=(20, 5))
-        ttk.Button(row2, text="Remove Specific (Animate)", command=self.remove_specific_animated).pack(side=tk.LEFT, padx=5)
+        tk.Label(row2, text="Remove Plate:", bg=self.bg_white, font=("Georgia", 10), fg=self.fg_slate).pack(side=tk.LEFT, padx=5)
+        self.remove_entry = tk.Entry(row2, width=15, font=("Georgia", 10), bd=2)
+        self.remove_entry.pack(side=tk.LEFT, padx=5)
+        tk.Button(row2, text="Remove Specific (Animate)", command=self.remove_specific_animated, **btn_style).pack(side=tk.LEFT, padx=5)
 
         # Row 3: Info Display
-        self.info_label = tk.Label(control_frame, text=f"Total Cars: 0 / {self.MAX_CAPACITY}", bg="#d9d9d9", font=("Arial", 10))
-        self.info_label.pack(anchor="w", pady=5)
+        self.info_label = tk.Label(
+            control_frame, 
+            text=f"Total Cars: 0 / {self.MAX_CAPACITY}", 
+            bg=self.bg_white, 
+            fg=self.fg_navy,
+            font=("Georgia", 10, "italic")
+        )
+        self.info_label.pack(anchor="center", pady=5)
 
         # --- Canvas for Visualization ---
-        self.canvas = tk.Canvas(self.left_panel, bg="white", highlightthickness=1, highlightbackground="black")
+        self.canvas = tk.Canvas(
+            self.left_panel, 
+            bg=self.bg_white, 
+            highlightthickness=1, 
+            highlightbackground=self.fg_slate
+        )
         self.canvas.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
         
         self.canvas.bind("<Configure>", lambda event: self.update_display())
@@ -122,15 +152,15 @@ class StackUI:
         tk.Label(
             self.right_panel, 
             text="PARKING DASHBOARD", 
-            font=("Arial", 14, "bold"), 
-            bg="white",
-            fg="#333"
+            font=("Georgia", 14, "bold"), 
+            bg=self.bg_white,
+            fg=self.fg_navy
         ).pack(pady=(20, 15))
 
         # Treeview Styles
         style = ttk.Style()
-        style.configure("Treeview.Heading", font=("Arial", 10, "bold"))
-        style.configure("Treeview", font=("Arial", 10), rowheight=25)
+        style.configure("Treeview.Heading", font=("Georgia", 10, "bold"))
+        style.configure("Treeview", font=("Georgia", 10), rowheight=25)
 
         # Dashboard Table
         columns = ("Slot", "Plate", "Arrivals", "Departures")
@@ -164,8 +194,8 @@ class StackUI:
         start_x = x_center - (car_width // 2)
         y_pos = y_bottom - car_height 
         
-        body_color = "#4a90e2"
-        cabin_color = "#8abef0"
+        body_color = "#1976D2"   
+        cabin_color = "#BBDEFB"
         
         cabin_h = car_height * 0.4
         body_h = car_height * 0.6
@@ -173,19 +203,19 @@ class StackUI:
 
         # Cabin
         cabin_coords = [
-            start_x + cabin_margin, y_pos,                         
-            start_x + car_width - cabin_margin, y_pos,             
+            start_x + cabin_margin, y_pos,                          
+            start_x + car_width - cabin_margin, y_pos,              
             start_x + car_width - (cabin_margin/2), y_pos + cabin_h, 
-            start_x + (cabin_margin/2), y_pos + cabin_h            
+            start_x + (cabin_margin/2), y_pos + cabin_h             
         ]
-        self.canvas.create_polygon(cabin_coords, fill=cabin_color, outline="black")
+        self.canvas.create_polygon(cabin_coords, fill=cabin_color, outline=self.fg_slate)
 
         # Body
         body_y_start = y_pos + cabin_h
         self.canvas.create_rectangle(
             start_x, body_y_start,
             start_x + car_width, body_y_start + body_h,
-            fill=body_color, outline="black"
+            fill=body_color, outline=self.fg_slate
         )
 
         # Wheels
@@ -256,7 +286,7 @@ class StackUI:
             self.draw_car(car, center_temp, y_loc)
 
         if self.stack.isEmpty() and self.temp_stack.isEmpty():
-             self.canvas.create_text(center_main, h/2, text="Empty", fill="gray", font=("Arial", 14))
+             self.canvas.create_text(center_main, h/2, text=" BAY EMPTY", fill="gray", font=("Georgia", 14, "italic"))
 
     def push_manual(self):
         if self.stack.size() >= self.MAX_CAPACITY:

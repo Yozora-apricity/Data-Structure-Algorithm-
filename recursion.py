@@ -321,7 +321,7 @@ class Logic:
         return result
 
 def get_user_input_gui(screen):
-    font = pygame.font.SysFont("Georgia", 40)
+    font = pygame.font.SysFont("Georgia", 40, bold=True)
     font_small = pygame.font.SysFont("Georgia", 24)
     font_error = pygame.font.SysFont("Georgia", 20, bold=True)
     
