@@ -4,106 +4,166 @@ import os
 import sys
 import subprocess
 
-class MainMenu:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Main Menu")
-        self.root.geometry("600x700")
-        self.root.configure(bg="black")
+class ParkingMenu:
+    """Sub-menu triggered by the Main Menu for parking options."""
+    def __init__(self, parent):
+        self.window = tk.Toplevel(parent)
+        self.window.title("Parking System Selection")
+        self.window.geometry("600x500")
         
-        self.center_window(600, 700)
+        # --- Color Palette ---
+        self.bg_white = "#FFFFFF"
+        self.fg_navy = "#1A237E"
+        self.fg_slate = "#2C3E50"
+        self.btn_bg = "#FFFFFF"
+        self.accent_blue = "#E3F2FD"
         
-        title_label = tk.Label(
-            self.root,
-            text="Main Menu",
-            font=("Arial", 23, "bold"),
-            fg="white",
-            bg="black"
-        )
-        title_label.pack(pady=(50, 10))
-
-        subtitle_label = tk.Label(
-            self.root, 
-            text="Select a program to launch:", 
-            font=("Arial", 12), 
-            bg="black", 
-            fg="white"
-        )
-        subtitle_label.pack(pady=(0, 40))
+        self.window.configure(bg=self.bg_white)
+        self.center_window(600, 500)
         
-        # Buttons Configuration
+        # --- Header ---
+        tk.Label(
+            self.window,
+            text="PARKING SYSTEM SELECTION",
+            font=("Georgia", 24, "bold"),
+            fg=self.fg_navy,
+            bg=self.bg_white
+        ).pack(pady=40)
+        
+        tk.Label(
+            self.window,
+            text="Choose Parking Implementation",
+            font=("Georgia", 10, "italic"),
+            bg=self.bg_white,
+            fg=self.fg_slate
+        ).pack(pady=(0, 30))
+        
+        # --- Button Style ---
         btn_style = {
-            "font": ("Arial", 12, "bold"),
-            "bg": "#333333",  # Dark gray button
-            "fg": "white",    # White text
-            "activebackground": "#555555",
-            "activeforeground": "white",
-            "width": 25,
+            "font": ("Georgia", 13, "bold"),
+            "bg": self.btn_bg,
+            "fg": self.fg_slate,
+            "activebackground": self.accent_blue,
+            "activeforeground": self.fg_navy,
+            "width": 30,
             "height": 2,
-            "bd": 0
+            "bd": 6,
+            "relief": "raised",
+            "cursor": "hand2"
         }
-
-        # --- Button Definitions ---
-        # 1. Car Parking Simulation (CLI - Needs Terminal for now)
-        self.btn_parking = tk.Button(
-            self.root, 
-            text="Car Parking Simulation", 
-            command=self.launch_parking_sim,
-            **btn_style
-        )
-        self.btn_parking.pack(pady=10)
-
-        # 2. Tower of Hanoi (Pygame)
-        self.btn_hanoi = tk.Button(
-            self.root, 
-            text="Tower of Hanoi (Pygame)", 
-            command=lambda: self.launch_script("recursion.py"),
-            **btn_style
-        )
-        self.btn_hanoi.pack(pady=10)
-
-        # 3. Binary Tree Visualizer (Tkinter)
-        self.btn_btree = tk.Button(
-            self.root, 
-            text="Binary Tree Visualizer", 
-            command=lambda: self.launch_script("binary_tree.py"),
-            **btn_style
-        )
-        self.btn_btree.pack(pady=10)
-
-        # 4. BST Visualizer (Tkinter)
-        self.btn_bst = tk.Button(
-            self.root, 
-            text="BST Visualizer", 
-            command=lambda: self.launch_script("binary_search_tree.py"),
-            **btn_style
-        )
-        self.btn_bst.pack(pady=10)
-
-        # Exit Button
-        self.btn_exit = tk.Button(
-            self.root, 
-            text="EXIT", 
-            command=self.root.quit,
-            font=("Arial", 12, "bold"),
-            bg="#800000", # Dark red
+        
+        # --- Parking Options ---
+        self.create_button("Queue Parking (FIFO)", lambda: self.launch_parking_module("queue_ui.py"), btn_style)
+        self.create_button("Stack Parking (LIFO)", lambda: self.launch_parking_module("stack_ui.py"), btn_style)
+        
+        # Back Button
+        btn_back = tk.Button(
+            self.window,
+            text="BACK TO MAIN MENU",
+            command=self.window.destroy,
+            font=("Georgia", 11, "bold"),
+            bg="#90A4AE",
             fg="white",
             width=25,
             height=2,
-            bd=0
+            bd=5,
+            relief="raised"
         )
-        self.btn_exit.pack(pady=30)
-
-        # Footer
-        footer = tk.Label(
-            self.root,
-            text="System Ready...",
-            font=("Consolas", 10),
-            bg="black",
-            fg="gray"
-        )
-        footer.pack(side=tk.BOTTOM, pady=10)
+        btn_back.pack(pady=40)
     
+    def create_button(self, text, command, style):
+        btn = tk.Button(self.window, text=text, command=command, **style)
+        btn.pack(pady=8)
+        btn.bind("<Enter>", lambda e: btn.config(bg=self.accent_blue))
+        btn.bind("<Leave>", lambda e: btn.config(bg=self.btn_bg))
+    
+    def center_window(self, width, height):
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        x = (screen_width // 2) - (width // 2)
+        y = (screen_height // 2) - (height // 2)
+        self.window.geometry(f'{width}x{height}+{x}+{y}')
+    
+    def launch_parking_module(self, filename):
+        # Updated path to include the user_interface folder
+        work_dir = os.path.join("car_parking_simulation", "user_interface")
+        script_path = os.path.join(work_dir, filename)
+        
+        # Check if the file exists in the specific sub-folder
+        if not os.path.exists(script_path):
+            messagebox.showwarning(
+                "Access Alert", 
+                f"Module '{filename}' is unavailable.\nPath checked: {script_path}"
+            )
+            return
+            
+        try:
+            # Launch using the correct working directory
+            if os.name == 'nt':  # Windows
+                # Use shell=True and cwd to ensure Python finds the file
+                subprocess.Popen([sys.executable, filename], cwd=work_dir, shell=True)
+            else:  # macOS/Linux
+                subprocess.Popen([sys.executable, filename], cwd=work_dir)
+        except Exception as e:
+            messagebox.showerror("Execution Error", f"Failed to launch module:\n{e}")
+
+class MainMenu:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("System Control Interface")
+        self.root.geometry("600x750")
+        
+        self.bg_white = "#FFFFFF"
+        self.fg_navy = "#1A237E"
+        self.fg_slate = "#2C3E50"
+        self.btn_bg = "#FFFFFF"
+        self.accent_blue = "#E3F2FD"
+        self.exit_red = "#B71C1C"
+        
+        self.root.configure(bg=self.bg_white)
+        self.center_window(600, 750)
+        
+        # --- Header ---
+        tk.Label(self.root, text="________________________________________________", 
+                 fg="#CFD8DC", bg=self.bg_white, font=("Arial", 10)).pack(pady=(30, 0))
+
+        tk.Label(self.root, text="COMMAND CENTER", font=("Georgia", 36, "bold"), 
+                 fg=self.fg_navy, bg=self.bg_white).pack(pady=10)
+
+        tk.Label(self.root, text="Select Module to Initialize", font=("Georgia", 10, "italic"), 
+                 bg=self.bg_white, fg=self.fg_slate).pack(pady=(0, 40))
+        
+        # --- Button Style ---
+        btn_style = {
+            "font": ("Georgia", 13, "bold"),
+            "bg": self.btn_bg,
+            "fg": self.fg_slate,
+            "activebackground": self.accent_blue,
+            "activeforeground": self.fg_navy,
+            "width": 30,
+            "height": 2,
+            "bd": 6,
+            "relief": "raised",
+            "cursor": "hand2"
+        }
+
+        # --- Module Buttons ---
+        self.create_button("Car Parking Simulation", self.launch_parking_sim, btn_style)
+        self.create_button("Tower of Hanoi", lambda: self.launch_script("recursion.py"), btn_style)
+        self.create_button("Binary Tree Logic", lambda: self.launch_script("binary_tree.py"), btn_style)
+        self.create_button("Binary Search Tree", lambda: self.launch_script("binary_search_tree.py"), btn_style)
+
+        # Exit
+        tk.Button(self.root, text="TERMINATE SESSION", command=self.root.quit, 
+                  font=("Georgia", 11, "bold"), bg=self.exit_red, fg="white", 
+                  width=25, height=2, bd=5, relief="raised").pack(pady=60)
+
+    def create_button(self, text, command, style):
+        btn = tk.Button(self.root, text=text, command=command, **style)
+        btn.pack(pady=8)
+        btn.bind("<Enter>", lambda e: btn.config(bg=self.accent_blue)) 
+        btn.bind("<Leave>", lambda e: btn.config(bg=self.btn_bg))
+
     def center_window(self, width, height):
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
@@ -112,38 +172,17 @@ class MainMenu:
         self.root.geometry(f'{width}x{height}+{x}+{y}')
         
     def launch_script(self, filename):
-        try:
-            if not os.path.exists(filename):
-                messagebox.showerror("Error", f"File '{filename}' not found in current directory.")
-                return
-
-            subprocess.Popen([sys.executable, filename])
-            print(f"Launched {filename}")
-
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to launch {filename}:\n{e}")
+        if not os.path.exists(filename):
+            messagebox.showwarning("Access Alert", f"Module '{filename}' not found.")
+            return
+        subprocess.Popen([sys.executable, filename])
+        self.root.destroy()
             
     def launch_parking_sim(self):
-        script_path = os.path.join("car_parking_simulation", "car_parking_dashboard.py")
-        work_dir = "car_parking_simulation"
-
-        # Check if file exists
-        if not os.path.exists(script_path):
-            messagebox.showerror("Error", f"File '{script_path}' not found.\nMake sure the folder structure is correct.")
-            return
-
-        try:
-            # Command to open a new terminal window varies by OS
-            if os.name == 'nt':  # Windows
-                cmd = f'start cmd /k "cd {work_dir} && {sys.executable} car_parking_dashboard.py"'
-                os.system(cmd)
-            else:
-                subprocess.Popen([sys.executable, script_path], cwd=work_dir)
-            
-            print(f"Launched {script_path}")
-
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to launch Parking Simulation:\n{e}")
+        # Instead of launching a script directly, open the sub-menu class
+        ParkingMenu(self.root)
+        self.root.withdraw()  # Hide main window instead of destroying it
+        self.root.after(500, lambda: self.root.destroy() if not self.root.winfo_exists() else None)  # Close after parking menu closes
 
 if __name__ == "__main__":
     root = tk.Tk()
