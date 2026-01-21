@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import random
 import time
+import sys  # Added for safe exit
 
 # --- INTERNAL LOGIC ---
 
@@ -47,8 +48,14 @@ class StackUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Stack Parking Simulation (LIFO)")
-        self.root.geometry("1200x750") 
         
+        # --- FULL SCREEN SETTINGS ---
+        self.root.attributes('-fullscreen', True)
+        self.root.bind("<Escape>", self.exit_app) # Press ESC to quit
+        self.root.protocol("WM_DELETE_WINDOW", self.exit_app)
+        
+        self.running = True # Flag to track if app is running
+
         # --- FORMAL LIGHT PALETTE ---
         self.bg_main = "#F0F2F5"    # Soft Light Grey
         self.bg_white = "#FFFFFF"   # Pure White
@@ -64,14 +71,14 @@ class StackUI:
 
         # --- Main Layout Container ---
         self.main_container = tk.Frame(self.root, bg=self.bg_main)
-        self.main_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
         # --- Left Panel (Visualization & Controls) ---
         self.left_panel = tk.Frame(self.main_container, bg=self.bg_main)
-        self.left_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
+        self.left_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 20))
 
         # --- Right Panel (Dashboard) ---
-        self.right_panel = tk.Frame(self.main_container, bg=self.bg_white, width=350, relief=tk.RIDGE, bd=1)
+        self.right_panel = tk.Frame(self.main_container, bg=self.bg_white, width=400, relief=tk.RIDGE, bd=1)
         self.right_panel.pack(side=tk.RIGHT, fill=tk.Y)
         self.right_panel.pack_propagate(False) 
 
@@ -83,18 +90,18 @@ class StackUI:
         tk.Label(
             self.left_panel, 
             text="LIFO STACK PARKING SIMULATION", 
-            font=("Georgia", 20, "bold"), 
+            font=("Georgia", 24, "bold"), 
             bg=self.bg_main,
             fg=self.fg_navy
-        ).pack(pady=10)
+        ).pack(pady=20)
 
         # --- Controls Frame ---
-        control_frame = tk.Frame(self.left_panel, bg=self.bg_white, padx=10, pady=10, bd=1, relief="ridge")
+        control_frame = tk.Frame(self.left_panel, bg=self.bg_white, padx=15, pady=15, bd=1, relief="ridge")
         control_frame.pack(fill=tk.X, padx=20, pady=10)
         
         # Button Style
         btn_style = {
-            "font": ("Georgia", 9, "bold"),
+            "font": ("Georgia", 10, "bold"),
             "bg": self.bg_white,
             "fg": self.fg_slate,
             "bd": 4,
@@ -106,8 +113,8 @@ class StackUI:
         row1 = tk.Frame(control_frame, bg=self.bg_white)
         row1.pack(anchor="center", pady=5)
         
-        tk.Label(row1, text="Plate:", bg=self.bg_white, font=("Georgia", 10), fg=self.fg_slate).pack(side=tk.LEFT, padx=5)
-        self.plate_entry = tk.Entry(row1, width=15, font=("Georgia", 10), bd=2)
+        tk.Label(row1, text="Plate:", bg=self.bg_white, font=("Georgia", 12), fg=self.fg_slate).pack(side=tk.LEFT, padx=5)
+        self.plate_entry = tk.Entry(row1, width=15, font=("Georgia", 12), bd=2)
         self.plate_entry.pack(side=tk.LEFT, padx=5)
         
         tk.Button(row1, text="Arrive (Manual)", command=self.push_manual, **btn_style).pack(side=tk.LEFT, padx=5)
@@ -119,8 +126,8 @@ class StackUI:
 
         tk.Button(row2, text="Depart (Pop Top)", command=self.pop_car, **btn_style).pack(side=tk.LEFT, padx=5)
         
-        tk.Label(row2, text="Remove Plate:", bg=self.bg_white, font=("Georgia", 10), fg=self.fg_slate).pack(side=tk.LEFT, padx=5)
-        self.remove_entry = tk.Entry(row2, width=15, font=("Georgia", 10), bd=2)
+        tk.Label(row2, text="Remove Plate:", bg=self.bg_white, font=("Georgia", 12), fg=self.fg_slate).pack(side=tk.LEFT, padx=5)
+        self.remove_entry = tk.Entry(row2, width=15, font=("Georgia", 12), bd=2)
         self.remove_entry.pack(side=tk.LEFT, padx=5)
         tk.Button(row2, text="Remove Specific (Animate)", command=self.remove_specific_animated, **btn_style).pack(side=tk.LEFT, padx=5)
 
@@ -130,7 +137,7 @@ class StackUI:
             text=f"Total Cars: 0 / {self.MAX_CAPACITY}", 
             bg=self.bg_white, 
             fg=self.fg_navy,
-            font=("Georgia", 10, "italic")
+            font=("Georgia", 12, "italic")
         )
         self.info_label.pack(anchor="center", pady=5)
 
@@ -152,15 +159,23 @@ class StackUI:
         tk.Label(
             self.right_panel, 
             text="PARKING DASHBOARD", 
-            font=("Georgia", 14, "bold"), 
+            font=("Georgia", 16, "bold"), 
             bg=self.bg_white,
             fg=self.fg_navy
         ).pack(pady=(20, 15))
 
+        tk.Label(
+            self.right_panel, 
+            text="Press ESC to Exit Full Screen", 
+            font=("Georgia", 10, "italic"), 
+            bg=self.bg_white,
+            fg="red"
+        ).pack(pady=(0, 10))
+
         # Treeview Styles
         style = ttk.Style()
-        style.configure("Treeview.Heading", font=("Georgia", 10, "bold"))
-        style.configure("Treeview", font=("Georgia", 10), rowheight=25)
+        style.configure("Treeview.Heading", font=("Georgia", 11, "bold"))
+        style.configure("Treeview", font=("Georgia", 11), rowheight=28)
 
         # Dashboard Table
         columns = ("Slot", "Plate", "Arrivals", "Departures")
@@ -189,9 +204,17 @@ class StackUI:
     # ==========================================
     # LOGIC
     # ==========================================
+    
+    def exit_app(self, event=None):
+        """Safely exits the application."""
+        self.running = False
+        try:
+            self.root.destroy()
+        except tk.TclError:
+            pass
+        sys.exit(0)
 
     def draw_car(self, car, x_center, y_bottom, car_width=200, car_height=50):
-        # Prevent drawing if dimensions are too small
         if car_height < 5: return
 
         start_x = x_center - (car_width // 2)
@@ -204,125 +227,129 @@ class StackUI:
         body_h = car_height * 0.6
         cabin_margin = car_width * 0.2
 
-        # Cabin
-        cabin_coords = [
-            start_x + cabin_margin, y_pos,                          
-            start_x + car_width - cabin_margin, y_pos,              
-            start_x + car_width - (cabin_margin/2), y_pos + cabin_h, 
-            start_x + (cabin_margin/2), y_pos + cabin_h             
-        ]
-        self.canvas.create_polygon(cabin_coords, fill=cabin_color, outline=self.fg_slate)
+        try:
+            # Cabin
+            cabin_coords = [
+                start_x + cabin_margin, y_pos,                          
+                start_x + car_width - cabin_margin, y_pos,              
+                start_x + car_width - (cabin_margin/2), y_pos + cabin_h, 
+                start_x + (cabin_margin/2), y_pos + cabin_h             
+            ]
+            self.canvas.create_polygon(cabin_coords, fill=cabin_color, outline=self.fg_slate)
 
-        # Body
-        body_y_start = y_pos + cabin_h
-        self.canvas.create_rectangle(
-            start_x, body_y_start,
-            start_x + car_width, body_y_start + body_h,
-            fill=body_color, outline=self.fg_slate
-        )
+            # Body
+            body_y_start = y_pos + cabin_h
+            self.canvas.create_rectangle(
+                start_x, body_y_start,
+                start_x + car_width, body_y_start + body_h,
+                fill=body_color, outline=self.fg_slate
+            )
 
-        # Wheels
-        wheel_radius = min(10, car_height * 0.2)
-        wheel_y_center = body_y_start + body_h
-        self.canvas.create_oval(start_x + 30 - wheel_radius, wheel_y_center - wheel_radius, 
-                                start_x + 30 + wheel_radius, wheel_y_center + wheel_radius, fill="black")
-        self.canvas.create_oval(start_x + car_width - 30 - wheel_radius, wheel_y_center - wheel_radius, 
-                                start_x + car_width - 30 + wheel_radius, wheel_y_center + wheel_radius, fill="black")
-        
-        # Text (Only draw if height allows)
-        if car_height > 20:
-            info_text = f"{car.plate_number} | A:{car.arrivals} D:{car.departures}"
-            font_size = max(7, int(car_height * 0.25))
-            self.canvas.create_text(x_center, body_y_start + (body_h / 2), text=info_text, 
-                                    fill="white", font=("Arial", font_size, "bold"))
+            # Wheels
+            wheel_radius = min(10, car_height * 0.2)
+            wheel_y_center = body_y_start + body_h
+            self.canvas.create_oval(start_x + 30 - wheel_radius, wheel_y_center - wheel_radius, 
+                                    start_x + 30 + wheel_radius, wheel_y_center + wheel_radius, fill="black")
+            self.canvas.create_oval(start_x + car_width - 30 - wheel_radius, wheel_y_center - wheel_radius, 
+                                    start_x + car_width - 30 + wheel_radius, wheel_y_center + wheel_radius, fill="black")
+            
+            # Text
+            if car_height > 20:
+                info_text = f"{car.plate_number} | A:{car.arrivals} D:{car.departures}"
+                font_size = max(7, int(car_height * 0.25))
+                self.canvas.create_text(x_center, body_y_start + (body_h / 2), text=info_text, 
+                                        fill="white", font=("Arial", font_size, "bold"))
+        except tk.TclError:
+            pass # Suppress drawing errors if window closed
 
     def draw_lane_structure(self, x_center, bottom_y, width, height, label):
-        c_left = x_center - (width // 2) - 10
-        c_right = x_center + (width // 2) + 10
-        c_top = bottom_y - height - 10
-        
-        self.canvas.create_line(
-            c_left, c_top, c_left, bottom_y, c_right, bottom_y, c_right, c_top,
-            width=5, fill="#555555", capstyle="round"
-        ) # type: ignore
-        self.canvas.create_text(x_center, bottom_y + 20, text=label, fill="#555555", font=("Arial", 10, "bold"))
+        try:
+            c_left = x_center - (width // 2) - 10
+            c_right = x_center + (width // 2) + 10
+            c_top = bottom_y - height - 10
+            
+            self.canvas.create_line(
+                c_left, c_top, c_left, bottom_y, c_right, bottom_y, c_right, c_top,
+                width=5, fill="#555555", capstyle="round"
+            ) # type: ignore
+            self.canvas.create_text(x_center, bottom_y + 20, text=label, fill="#555555", font=("Arial", 10, "bold"))
+        except tk.TclError:
+            pass
 
     def update_dashboard(self):
-        """Updates the Treeview in the right panel with current stack data."""
-        for item in self.dashboard_tree.get_children():
-            self.dashboard_tree.delete(item)
-        
-        # Populate with current stack items
-        current_size = self.stack.size()
-        for i, car in enumerate(reversed(self.stack.stack)):
-            slot_number = current_size - i
-            self.dashboard_tree.insert("", "end", values=(slot_number, car.plate_number, car.arrivals, car.departures))
+        try:
+            for item in self.dashboard_tree.get_children():
+                self.dashboard_tree.delete(item)
+            
+            current_size = self.stack.size()
+            for i, car in enumerate(reversed(self.stack.stack)):
+                slot_number = current_size - i
+                self.dashboard_tree.insert("", "end", values=(slot_number, car.plate_number, car.arrivals, car.departures))
+        except tk.TclError:
+            pass
 
     def update_display(self):
-        self.canvas.delete("all")
-        self.info_label.config(text=f"Total Cars: {self.stack.size()} / {self.MAX_CAPACITY}")
-        
-        # Update Dashboard
-        self.update_dashboard()
+        if not self.running: return
 
-        w = self.canvas.winfo_width()
-        h = self.canvas.winfo_height()
-        
-        # Fallback dimensions if canvas isn't rendered yet
-        if h < 100: h = 500
-        if w < 100: w = 860
-
-        # --- DYNAMIC SCALING LOGIC ---
-        # Calculate available height for the parking stack
-        # Reserve space for top margin (text) and bottom margin (lane text)
-        top_margin = 40
-        bottom_margin = 60
-        available_height = h - top_margin - bottom_margin
-
-        # Standard Sizes
-        default_car_h = 50
-        default_gap = 15
-        
-        # Calculate the height required for FULL capacity
-        required_height_per_car = default_car_h + default_gap
-        total_required_height = self.MAX_CAPACITY * required_height_per_car
-
-        # Scale down
-        if available_height < total_required_height:
-            scale_factor = available_height / total_required_height
-            car_h = int(default_car_h * scale_factor)
-            gap = int(default_gap * scale_factor)
+        try:
+            self.canvas.delete("all")
+            self.info_label.config(text=f"Total Cars: {self.stack.size()} / {self.MAX_CAPACITY}")
             
-            # Clamp minimum sizes to prevent disappearance
-            if car_h < 25: car_h = 25
-            if gap < 2: gap = 2
-        else:
-            car_h = default_car_h
-            gap = default_gap
+            # Update Dashboard
+            self.update_dashboard()
 
-        car_w = 200 # Keep width fixed for readability
-        stack_height_pixels = self.MAX_CAPACITY * (car_h + gap)
-        lane_bottom_y = h - bottom_margin
+            w = self.canvas.winfo_width()
+            h = self.canvas.winfo_height()
+            
+            if h < 100: h = 500
+            if w < 100: w = 860
+
+            # Dynamic Scaling
+            top_margin = 40
+            bottom_margin = 60
+            available_height = h - top_margin - bottom_margin
+
+            default_car_h = 50
+            default_gap = 15
+            
+            required_height_per_car = default_car_h + default_gap
+            total_required_height = self.MAX_CAPACITY * required_height_per_car
+
+            if available_height < total_required_height:
+                scale_factor = available_height / total_required_height
+                car_h = int(default_car_h * scale_factor)
+                gap = int(default_gap * scale_factor)
+                
+                if car_h < 25: car_h = 25
+                if gap < 2: gap = 2
+            else:
+                car_h = default_car_h
+                gap = default_gap
+
+            car_w = 200 
+            stack_height_pixels = self.MAX_CAPACITY * (car_h + gap)
+            lane_bottom_y = h - bottom_margin
+            
+            center_main = w * 0.33  
+            center_temp = w * 0.66  
+
+            self.draw_lane_structure(center_main, lane_bottom_y, car_w, stack_height_pixels, "MAIN PARKING (LIFO)")
+            
+            for i, car in enumerate(self.stack.stack):
+                y_loc = lane_bottom_y - (i * (car_h + gap)) - 5 
+                self.draw_car(car, center_main, y_loc, car_width=car_w, car_height=car_h)
+
+            self.draw_lane_structure(center_temp, lane_bottom_y, car_w, stack_height_pixels, "AUXILIARY / TEMP")
+
+            for i, car in enumerate(self.temp_stack.stack):
+                y_loc = lane_bottom_y - (i * (car_h + gap)) - 5
+                self.draw_car(car, center_temp, y_loc, car_width=car_w, car_height=car_h)
+
+            if self.stack.isEmpty() and self.temp_stack.isEmpty():
+                self.canvas.create_text(center_main, h/2, text=" BAY EMPTY", fill="gray", font=("Georgia", 14, "italic"))
         
-        center_main = w * 0.33  
-        center_temp = w * 0.66  
-
-        # --- DRAW MAIN LANE ---
-        self.draw_lane_structure(center_main, lane_bottom_y, car_w, stack_height_pixels, "MAIN PARKING (LIFO)")
-        
-        for i, car in enumerate(self.stack.stack):
-            y_loc = lane_bottom_y - (i * (car_h + gap)) - 5 
-            self.draw_car(car, center_main, y_loc, car_width=car_w, car_height=car_h)
-
-        # --- DRAW AUXILIARY LANE ---
-        self.draw_lane_structure(center_temp, lane_bottom_y, car_w, stack_height_pixels, "AUXILIARY / TEMP")
-
-        for i, car in enumerate(self.temp_stack.stack):
-            y_loc = lane_bottom_y - (i * (car_h + gap)) - 5
-            self.draw_car(car, center_temp, y_loc, car_width=car_w, car_height=car_h)
-
-        if self.stack.isEmpty() and self.temp_stack.isEmpty():
-             self.canvas.create_text(center_main, h/2, text=" BAY EMPTY", fill="gray", font=("Georgia", 14, "italic"))
+        except tk.TclError:
+            pass # Ignore errors if updates happen while closing
 
     def push_manual(self):
         if self.stack.size() >= self.MAX_CAPACITY:
@@ -352,7 +379,6 @@ class StackUI:
     def pop_car(self):
         car = self.stack.pop()
         if car:
-            # UPDATE: Manual departure counts as a departure
             car.departures += 1
             messagebox.showinfo("Departed", f"Car {car.plate_number} departed.")
             self.update_display()
@@ -371,11 +397,12 @@ class StackUI:
 
         found = False
         
+        # Phase 1: Search and move to temp
         while not self.stack.isEmpty():
+            if not self.running: return # Safety Check
+
             top_car = self.stack.peek()
-            
-            if top_car is None:
-                break
+            if top_car is None: break
             
             if top_car.plate_number == target:
                 found = True
@@ -383,36 +410,47 @@ class StackUI:
             else:
                 moving_car = self.stack.pop()
                 if moving_car: 
-                    # UPDATE: Moving to temp lane counts as physical departure
                     moving_car.departures += 1
                     self.temp_stack.push(moving_car)
                 
                 self.update_display()
-                self.root.update() 
+                try:
+                    self.root.update() 
+                except tk.TclError:
+                    return
                 time.sleep(0.5)    
 
+        # Phase 2: Remove Target or Restore
         if found:
+            if not self.running: return
             removed_car = self.stack.pop()
             if removed_car:
-                # Permanent departure
                 removed_car.departures += 1
                 messagebox.showinfo("Found", f"Car {removed_car.plate_number} is leaving now.")
             
             self.update_display()
-            self.root.update()
+            try:
+                self.root.update()
+            except tk.TclError:
+                return
             time.sleep(0.5)
         else:
             messagebox.showerror("Not Found", f"Car {target} not found. Moving cars back.")
 
+        # Phase 3: Restore from temp
         while not self.temp_stack.isEmpty():
+            if not self.running: return
+
             return_car = self.temp_stack.pop()
             if return_car: 
-                # UPDATE: Returning to main lane counts as re-arrival
                 return_car.arrivals += 1
                 self.stack.push(return_car)
             
             self.update_display()
-            self.root.update()
+            try:
+                self.root.update()
+            except tk.TclError:
+                return
             time.sleep(0.5)
         
         self.remove_entry.delete(0, tk.END)
