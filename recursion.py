@@ -4,6 +4,7 @@ import sys
 import colorsys
 
 # --- GLOBAL CONSTANTS ---
+# Default values (will be overwritten by fullscreen detection)
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 FPS = 30  # Optimized for low-end devices
@@ -15,7 +16,7 @@ MIN_PLATE_WIDTH = 60
 MAX_PLATE_WIDTH = 300
 
 # Visual Constants
-PEG_Y = SCREEN_HEIGHT - BASE_HEIGHT
+# Note: PEG_Y is calculated dynamically in the classes based on current height
 LIFT_HEIGHT = 150 
 
 # Colors
@@ -95,13 +96,17 @@ class Tower:
     def render_background_snapshot(self):
         surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         surface.fill(WHITE)
+        
+        # Recalculate PEG_Y based on current screen height
+        current_peg_y = SCREEN_HEIGHT - BASE_HEIGHT
+
         # Draw Floor
         pygame.draw.rect(surface, SLATE, (0, SCREEN_HEIGHT - BASE_HEIGHT, SCREEN_WIDTH, BASE_HEIGHT))
 
         # Draw Pegs and Static Plates
         for tower_name, x_pos in self.peg_positions.items():
             peg_height = 400
-            pygame.draw.rect(surface, SLATE, (x_pos - PEG_WIDTH//2, PEG_Y - peg_height, PEG_WIDTH, peg_height))
+            pygame.draw.rect(surface, SLATE, (x_pos - PEG_WIDTH//2, current_peg_y - peg_height, PEG_WIDTH, peg_height))
             
             plates = self.towers[tower_name]
             for i, plate_value in enumerate(plates):
@@ -390,9 +395,18 @@ def get_user_input_gui(screen):
                         input_value = ""
 
 def main():
+    # Use globals so updated screen size affects all classes
+    global SCREEN_WIDTH, SCREEN_HEIGHT
+
     pygame.init()
     pygame.font.init()
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF)
+    
+    # MODIFIED: Set to FULLSCREEN using the monitor's native resolution
+    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN | pygame.DOUBLEBUF)
+    
+    # MODIFIED: Update global constants to match the actual fullscreen resolution
+    SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
+    
     pygame.display.set_caption("Tower of Hanoi Simulation")
     
     while True:

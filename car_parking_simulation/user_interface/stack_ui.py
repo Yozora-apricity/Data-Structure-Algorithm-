@@ -191,6 +191,9 @@ class StackUI:
     # ==========================================
 
     def draw_car(self, car, x_center, y_bottom, car_width=200, car_height=50):
+        # Prevent drawing if dimensions are too small
+        if car_height < 5: return
+
         start_x = x_center - (car_width // 2)
         y_pos = y_bottom - car_height 
         
@@ -219,14 +222,19 @@ class StackUI:
         )
 
         # Wheels
-        wheel_radius = 10
+        wheel_radius = min(10, car_height * 0.2)
         wheel_y_center = body_y_start + body_h
-        self.canvas.create_oval(start_x + 30 - 10, wheel_y_center - 10, start_x + 30 + 10, wheel_y_center + 10, fill="black")
-        self.canvas.create_oval(start_x + car_width - 30 - 10, wheel_y_center - 10, start_x + car_width - 30 + 10, wheel_y_center + 10, fill="black")
+        self.canvas.create_oval(start_x + 30 - wheel_radius, wheel_y_center - wheel_radius, 
+                                start_x + 30 + wheel_radius, wheel_y_center + wheel_radius, fill="black")
+        self.canvas.create_oval(start_x + car_width - 30 - wheel_radius, wheel_y_center - wheel_radius, 
+                                start_x + car_width - 30 + wheel_radius, wheel_y_center + wheel_radius, fill="black")
         
-        # Text
-        info_text = f"{car.plate_number} | A:{car.arrivals} D:{car.departures}"
-        self.canvas.create_text(x_center, body_y_start + (body_h / 2), text=info_text, fill="white", font=("Arial", 9, "bold"))
+        # Text (Only draw if height allows)
+        if car_height > 20:
+            info_text = f"{car.plate_number} | A:{car.arrivals} D:{car.departures}"
+            font_size = max(7, int(car_height * 0.25))
+            self.canvas.create_text(x_center, body_y_start + (body_h / 2), text=info_text, 
+                                    fill="white", font=("Arial", font_size, "bold"))
 
     def draw_lane_structure(self, x_center, bottom_y, width, height, label):
         c_left = x_center - (width // 2) - 10
@@ -259,31 +267,59 @@ class StackUI:
 
         w = self.canvas.winfo_width()
         h = self.canvas.winfo_height()
+        
+        # Fallback dimensions if canvas isn't rendered yet
         if h < 100: h = 500
         if w < 100: w = 860
 
-        car_w, car_h, gap = 200, 50, 15
-        bottom_margin = 40
+        # --- DYNAMIC SCALING LOGIC ---
+        # Calculate available height for the parking stack
+        # Reserve space for top margin (text) and bottom margin (lane text)
+        top_margin = 40
+        bottom_margin = 60
+        available_height = h - top_margin - bottom_margin
+
+        # Standard Sizes
+        default_car_h = 50
+        default_gap = 15
+        
+        # Calculate the height required for FULL capacity
+        required_height_per_car = default_car_h + default_gap
+        total_required_height = self.MAX_CAPACITY * required_height_per_car
+
+        # Scale down
+        if available_height < total_required_height:
+            scale_factor = available_height / total_required_height
+            car_h = int(default_car_h * scale_factor)
+            gap = int(default_gap * scale_factor)
+            
+            # Clamp minimum sizes to prevent disappearance
+            if car_h < 25: car_h = 25
+            if gap < 2: gap = 2
+        else:
+            car_h = default_car_h
+            gap = default_gap
+
+        car_w = 200 # Keep width fixed for readability
+        stack_height_pixels = self.MAX_CAPACITY * (car_h + gap)
         lane_bottom_y = h - bottom_margin
         
         center_main = w * 0.33  
         center_temp = w * 0.66  
-
-        stack_height_pixels = self.MAX_CAPACITY * (car_h + gap)
 
         # --- DRAW MAIN LANE ---
         self.draw_lane_structure(center_main, lane_bottom_y, car_w, stack_height_pixels, "MAIN PARKING (LIFO)")
         
         for i, car in enumerate(self.stack.stack):
             y_loc = lane_bottom_y - (i * (car_h + gap)) - 5 
-            self.draw_car(car, center_main, y_loc)
+            self.draw_car(car, center_main, y_loc, car_width=car_w, car_height=car_h)
 
         # --- DRAW AUXILIARY LANE ---
         self.draw_lane_structure(center_temp, lane_bottom_y, car_w, stack_height_pixels, "AUXILIARY / TEMP")
 
         for i, car in enumerate(self.temp_stack.stack):
             y_loc = lane_bottom_y - (i * (car_h + gap)) - 5
-            self.draw_car(car, center_temp, y_loc)
+            self.draw_car(car, center_temp, y_loc, car_width=car_w, car_height=car_h)
 
         if self.stack.isEmpty() and self.temp_stack.isEmpty():
              self.canvas.create_text(center_main, h/2, text=" BAY EMPTY", fill="gray", font=("Georgia", 14, "italic"))
