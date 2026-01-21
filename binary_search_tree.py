@@ -14,9 +14,11 @@ class Node:
 class BST:
     def __init__(self):
         self.root = None
+        self.count = 0
 
     def insert(self, value):
         self.root = self._insert(self.root, value)
+        self.count += 1
 
     def _insert(self, node, value):
         if not node:
@@ -47,13 +49,12 @@ class BST:
         elif value > node.value:
             node.right = self.delete(node.right, value)
         else:
-            # Case 1 & 2: no child or one child
+            self.count -= 1
             if not node.left:
                 return node.right
             if not node.right:
                 return node.left
 
-            # Case 3: two children
             successor = self._min_value(node.right)
             node.value = successor.value
             node.right = self.delete(node.right, successor.value)
@@ -61,10 +62,9 @@ class BST:
         return node
 
     def _min_value(self, node):
-        current = node
-        while current.left:
-            current = current.left
-        return current
+        while node.left:
+            node = node.left
+        return node
 
     # ---------- TRAVERSALS ----------
     def ltr(self, node, result):
@@ -101,7 +101,6 @@ class BSTVisualizer:
 
         self.mode = tk.StringVar(value="manual")
         tk.Label(mode_frame, text="Input Mode:", font=("Georgia", 10)).pack(side=tk.LEFT)
-
         tk.Radiobutton(mode_frame, text="Manual", variable=self.mode,
                        value="manual", command=self.update_mode).pack(side=tk.LEFT)
         tk.Radiobutton(mode_frame, text="Random Tree", variable=self.mode,
@@ -121,37 +120,31 @@ class BSTVisualizer:
 
         self.entry = tk.Entry(control, width=8, font=("Georgia", 12))
         self.entry.pack(side=tk.LEFT, padx=4)
-
         tk.Button(control, text="Insert", command=self.insert_value, **btn_style).pack(side=tk.LEFT)
 
         tk.Label(control, text="Nodes:", font=("Georgia", 10)).pack(side=tk.LEFT, padx=4)
-
         self.rand_count = tk.Entry(control, width=5, font=("Georgia", 12))
         self.rand_count.pack(side=tk.LEFT)
-
         tk.Button(control, text="Generate", command=self.generate_random, **btn_style).pack(side=tk.LEFT, padx=4)
 
-        tk.Button(control, text="Clear", command=self.clear_tree, fg="#B71C1C", **btn_style).pack(side=tk.LEFT, padx=4)
+        tk.Button(control, text="Clear", command=self.clear_tree,
+                  fg="#B71C1C", **btn_style).pack(side=tk.LEFT, padx=4)
 
-        # ---------- SEARCH ----------
         self.search_entry = tk.Entry(control, width=8, font=("Georgia", 12))
         self.search_entry.pack(side=tk.LEFT, padx=4)
         tk.Button(control, text="Search", command=self.search_node, **btn_style).pack(side=tk.LEFT)
 
-        # ---------- DELETE ----------
         self.delete_entry = tk.Entry(control, width=8, font=("Georgia", 12))
         self.delete_entry.pack(side=tk.LEFT, padx=4)
-        tk.Button(control, text="Delete", command=self.delete_node, fg="#B71C1C", **btn_style).pack(side=tk.LEFT)
+        tk.Button(control, text="Delete", command=self.delete_node,
+                  fg="#B71C1C", **btn_style).pack(side=tk.LEFT)
 
-        # ---------- TRAVERSALS ----------
         for label, cmd in [("LTR", self.show_ltr), ("TLR", self.show_tlr), ("LRT", self.show_lrt)]:
             tk.Button(control, text=label, command=cmd, **btn_style).pack(side=tk.LEFT, padx=3)
 
-        # ---------- CANVAS ----------
         self.canvas = tk.Canvas(root, bg="white", height=450)
         self.canvas.pack(fill=tk.BOTH, expand=True, padx=20)
 
-        # ---------- OUTPUT ----------
         self.output = tk.Label(root, text="Traversal:", font=("Georgia", 12, "bold"))
         self.output.pack(pady=15)
 
@@ -159,11 +152,16 @@ class BSTVisualizer:
 
     # ---------- MODE ----------
     def update_mode(self):
-        state_manual = self.mode.get() == "manual"
-        self.entry.config(state="normal" if state_manual else "disabled")
+        manual = self.mode.get() == "manual"
+        self.entry.config(state="normal" if manual else "disabled")
+        self.rand_count.config(state="disabled" if manual else "normal")
 
     # ---------- ACTIONS ----------
     def insert_value(self):
+        if self.bst.count >= 30:
+            messagebox.showerror("Limit Reached", "Maximum of 30 nodes allowed.", parent=self.root)
+            return
+
         try:
             v = int(self.entry.get())
             self.bst.insert(v)
@@ -177,21 +175,32 @@ class BSTVisualizer:
             if count < 10 or count > 30:
                 messagebox.showerror("Error", "Enter 10–30 nodes", parent=self.root)
                 return
+
+            self.bst = BST()
             for _ in range(count):
                 self.bst.insert(random.randint(0, 200))
             self.redraw()
+
         except ValueError:
             messagebox.showerror("Error", "Invalid integer", parent=self.root)
 
     def search_node(self):
+        if self.bst.count < 10:
+            messagebox.showerror("Error", "Tree must have at least 10 nodes.", parent=self.root)
+            return
+
         try:
             v = int(self.search_entry.get())
             found = self.bst.search(self.bst.root, v)
-            messagebox.showinfo("Search Result", f"{v} {'FOUND' if found else 'NOT FOUND'}", parent=self.root)
+            messagebox.showinfo("Search", f"{v} {'FOUND' if found else 'NOT FOUND'}", parent=self.root)
         except ValueError:
             messagebox.showerror("Error", "Invalid integer", parent=self.root)
 
     def delete_node(self):
+        if self.bst.count < 10:
+            messagebox.showerror("Error", "Tree must have at least 10 nodes.", parent=self.root)
+            return
+
         try:
             v = int(self.delete_entry.get())
             if not self.bst.search(self.bst.root, v):
@@ -203,7 +212,7 @@ class BSTVisualizer:
             messagebox.showerror("Error", "Invalid integer", parent=self.root)
 
     def clear_tree(self):
-        self.bst.root = None
+        self.bst = BST()
         self.canvas.delete("all")
         self.output.config(text="Traversal:")
 
@@ -228,16 +237,25 @@ class BSTVisualizer:
 
     # ---------- TRAVERSALS ----------
     def show_ltr(self):
+        if self.bst.count < 10:
+            messagebox.showerror("Error", "Tree must have at least 10 nodes.", parent=self.root)
+            return
         res = []
         self.bst.ltr(self.bst.root, res)
         self.output.config(text="LTR: " + str(res))
 
     def show_tlr(self):
+        if self.bst.count < 10:
+            messagebox.showerror("Error", "Tree must have at least 10 nodes.", parent=self.root)
+            return
         res = []
         self.bst.tlr(self.bst.root, res)
         self.output.config(text="TLR: " + str(res))
 
     def show_lrt(self):
+        if self.bst.count < 10:
+            messagebox.showerror("Error", "Tree must have at least 10 nodes.", parent=self.root)
+            return
         res = []
         self.bst.lrt(self.bst.root, res)
         self.output.config(text="LRT: " + str(res))
