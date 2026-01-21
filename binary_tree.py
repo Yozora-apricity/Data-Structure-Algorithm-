@@ -8,10 +8,12 @@ import sys
 
 # --- BINARY TREE LOGIC ---
 class BinaryTreeNode:
-    def __init__(self, value):
+    def __init__(self, value, index=None):
         self.value = value
         self.left = None
         self.right = None
+        self.index = index
+        self.parent = None
 
 def ltr(node): # In-order traversal
     if node is None:
@@ -62,7 +64,7 @@ class BinaryTreeOrder:
                 reserved.add(left_child)
                 reserved.add(right_child)
         
-        nodes = [BinaryTreeNode(v) if i not in reserved else None for i, v in enumerate(values)]
+        nodes = [BinaryTreeNode(v, i) if i not in reserved else None for i, v in enumerate(values)]
         
         for i in range(len(nodes)):
             if nodes[i] is None or values[i] == " ":
@@ -72,8 +74,12 @@ class BinaryTreeOrder:
             right_idx = 2 * i + 2
             if left_idx < len(nodes):
                 nodes[i].left = nodes[left_idx]
+                if nodes[left_idx]:
+                    nodes[left_idx].parent = nodes[i]
             if right_idx < len(nodes):
                 nodes[i].right = nodes[right_idx]
+                if nodes[right_idx]:
+                    nodes[right_idx].parent = nodes[i]
         self.root = nodes[0]
 
 # --- BINARY TREE  UI ---
@@ -81,7 +87,7 @@ class BinaryTreeUI:
     def __init__(self, root):
         self.root = root
         self.root.title("System Control Interface - Binary Tree")
-        self.root.geometry("1200x850")
+        self.root.geometry("1200x900")
         
         # --- Formal Light Palette ---
         self.bg_white = "#FFFFFF"          
@@ -91,6 +97,10 @@ class BinaryTreeUI:
         self.btn_bg = "#FFFFFF"            
         self.accent_blue = "#E3F2FD"       
         self.exit_red = "#B71C1C"          
+        
+        self.selected_node = None
+        self.node_coords = {}
+        self.current_traversal = None
         
         self.root.configure(bg=self.bg_white)
         
@@ -209,13 +219,15 @@ class BinaryTreeUI:
         self.target_level = level
         self.max_nodes = (2 ** level) - 1
         self.tree_logic = BinaryTreeOrder()
+        self.selected_node = None
+        self.node_coords = {}
+        self.current_traversal = None
 
         # Header Status Bar
         status_bar = tk.Frame(self.main_frame, bg=self.bg_grey, height=45)
         status_bar.pack(fill=tk.X)
         status_bar.pack_propagate(False)
 
-        # UPDATED STATUS LABEL: Level {level} | Node: 0/{self.max_nodes}
         self.node_count_lbl = tk.Label(
             status_bar, 
             text=f"Level {level} | Node: 0/{self.max_nodes}", 
@@ -237,15 +249,32 @@ class BinaryTreeUI:
         container = tk.Frame(self.main_frame, bg=self.bg_white)
         container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
-        # LEFT: CANVAS
-        canvas_border = tk.Frame(container, bg=self.fg_slate, bd=2)
-        canvas_border.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        # LEFT: CANVAS + TRAVERSAL RESULTS
+        left_section = tk.Frame(container, bg=self.bg_white)
+        left_section.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        canvas_border = tk.Frame(left_section, bg=self.fg_slate, bd=2)
+        canvas_border.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
         self.canvas = tk.Canvas(canvas_border, bg="white", highlightthickness=0)
         self.canvas.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
+        self.canvas.bind("<Button-1>", self.on_canvas_click)
+        self.canvas.bind("<Configure>", lambda e: self.on_canvas_resize())
+
+        # Traversal Results Display
+        result_frame = tk.Frame(left_section, bg=self.bg_grey, bd=6, relief="sunken")
+        result_frame.pack(fill=tk.X, pady=(0, 0))
+        tk.Label(result_frame, text="Traversal Result:", font=("Georgia", 10, "bold"), bg=self.bg_grey, fg=self.fg_navy).pack(anchor="w", padx=10, pady=(10, 5))
+        
+        self.result_display = tk.Text(result_frame, height=3, bg=self.bg_grey, fg=self.fg_slate, font=("Georgia", 11), wrap=tk.WORD, relief=tk.FLAT, bd=0)
+        self.result_display.pack(fill=tk.X, padx=10, pady=(5, 10))
+        
+        # Configure text tags for bold
+        self.result_display.tag_config("bold", font=("Georgia", 11, "bold"), foreground=self.fg_navy)
+        self.result_display.tag_config("normal", font=("Georgia", 11), foreground=self.fg_navy)
 
         # RIGHT: SIDEBAR
         sidebar = tk.Frame(container, bg=self.bg_white, width=300)
-        sidebar.pack(side=tk.RIGHT, fill=tk.Y, padx=(20, 0))
+        sidebar.pack(side=tk.RIGHT, fill=tk.BOTH, expand=False, padx=(20, 0))
 
         box_style = {"bg": self.bg_grey, "bd": 6, "relief": "raised"}
 
@@ -275,13 +304,39 @@ class BinaryTreeUI:
         # Box 3: Traversals
         tk.Label(sidebar, text="Ⅲ. TRAVERSALS", font=("Georgia", 10, "bold"), bg=self.bg_white).pack(anchor="w")
         box3 = tk.Frame(sidebar, **box_style)
-        box3.pack(fill=tk.BOTH, expand=True)
-        self.tlr_lbl = tk.Label(box3, text="TLR: ", font=("Georgia", 11), bg=self.bg_grey, anchor="w", wraplength=250)
-        self.tlr_lbl.pack(fill=tk.X, padx=10, pady=5)
-        self.ltr_lbl = tk.Label(box3, text="LTR: ", font=("Georgia", 11), bg=self.bg_grey, anchor="w", wraplength=250)
-        self.ltr_lbl.pack(fill=tk.X, padx=10, pady=5)
-        self.lrt_lbl = tk.Label(box3, text="LRT: ", font=("Georgia", 11), bg=self.bg_grey, anchor="w", wraplength=250)
-        self.lrt_lbl.pack(fill=tk.X, padx=10, pady=5)
+        box3.pack(fill=tk.X, pady=(0, 20))
+        
+        btn_traversal = tk.Frame(box3, bg=self.bg_grey)
+        btn_traversal.pack(fill=tk.X, padx=5, pady=10)
+        
+        tk.Button(btn_traversal, text="Pre-order", font=("Georgia", 9, "bold"), bd=4, relief="raised", bg="#00FF00", command=lambda: self.show_traversal("preorder")).pack(fill=tk.X, pady=3)
+        tk.Button(btn_traversal, text="Inorder", font=("Georgia", 9, "bold"), bd=4, relief="raised", bg="#FFA500", command=lambda: self.show_traversal("inorder")).pack(fill=tk.X, pady=3)
+        tk.Button(btn_traversal, text="Post-order", font=("Georgia", 9, "bold"), bd=4, relief="raised", bg="#FF1493", command=lambda: self.show_traversal("postorder")).pack(fill=tk.X, pady=3)
+
+        # Box 4: Selected Node
+        tk.Label(sidebar, text="Ⅳ. SELECTED NODE", font=("Georgia", 10, "bold"), bg=self.bg_white).pack(anchor="w")
+        box4 = tk.Frame(sidebar, **box_style)
+        box4.pack(fill=tk.BOTH, expand=True)
+
+        info_frame = tk.Frame(box4, bg=self.bg_grey)
+        info_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        tk.Label(info_frame, text="Node Information", font=("Georgia", 10, "bold"), bg=self.bg_grey, fg=self.fg_navy).pack(pady=(5, 10))
+
+        self.node_index_lbl = tk.Label(info_frame, text="Node Index:        ?", font=("Georgia", 10), bg=self.bg_grey, fg=self.fg_slate, anchor="w")
+        self.node_index_lbl.pack(fill=tk.X, padx=10, pady=3)
+
+        self.node_value_lbl = tk.Label(info_frame, text="Node Value:        ?", font=("Georgia", 10), bg=self.bg_grey, fg=self.fg_slate, anchor="w")
+        self.node_value_lbl.pack(fill=tk.X, padx=10, pady=3)
+
+        self.node_parent_lbl = tk.Label(info_frame, text="Parent:              ?", font=("Georgia", 10), bg=self.bg_grey, fg=self.fg_slate, anchor="w")
+        self.node_parent_lbl.pack(fill=tk.X, padx=10, pady=3)
+
+        self.node_left_lbl = tk.Label(info_frame, text="Left Child:         ?", font=("Georgia", 10), bg=self.bg_grey, fg=self.fg_slate, anchor="w")
+        self.node_left_lbl.pack(fill=tk.X, padx=10, pady=3)
+
+        self.node_right_lbl = tk.Label(info_frame, text="Right Child:       ?", font=("Georgia", 10), bg=self.bg_grey, fg=self.fg_slate, anchor="w")
+        self.node_right_lbl.pack(fill=tk.X, padx=10, pady=10)
 
         self.input_entry.bind("<Return>", lambda e: self.handle_input())
         self.root.bind("<Control_L>", lambda e: self.reset_game())
@@ -303,19 +358,94 @@ class BinaryTreeUI:
     def reset_game(self):
         self.start_binary_tree_page(self.target_level)
 
+    def show_traversal(self, traversal_type):
+        self.current_traversal = traversal_type
+        
+        if not self.tree_logic.root:
+            self.result_display.config(state=tk.NORMAL)
+            self.result_display.delete("1.0", tk.END)
+            self.result_display.insert("1.0", "No tree to traverse")
+            self.result_display.config(state=tk.DISABLED, foreground=self.exit_red)
+            return
+        
+        if traversal_type == "preorder":
+            result = tlr(self.tree_logic.root)
+            method_name = "Pre-order"
+            description = "(Root-Left-Right)"
+        elif traversal_type == "inorder":
+            result = ltr(self.tree_logic.root)
+            method_name = "In-order"
+            description = "(Left-Root-Right)"
+        elif traversal_type == "postorder":
+            result = lrt(self.tree_logic.root)
+            method_name = "Post-order"
+            description = "(Left-Right-Root)"
+        else:
+            return
+        
+        result_str = " → ".join(str(x) for x in result) if result else "Empty"
+        
+        # Update Text widget with formatted text
+        self.result_display.config(state=tk.NORMAL)
+        self.result_display.delete("1.0", tk.END)
+        self.result_display.insert("1.0", method_name, "bold")
+        self.result_display.insert(tk.END, f" {description}\n", "normal")
+        self.result_display.insert(tk.END, result_str, "normal")
+        self.result_display.config(state=tk.DISABLED)
+
+    def on_canvas_resize(self):
+        if self.tree_logic.root:
+            self.root.update_idletasks()
+            self.canvas.delete("all")
+            self.node_coords = {}
+            w = self.canvas.winfo_width()
+            self.draw_tree(self.tree_logic.root, w//2, 60, w//4)
+
+    def on_canvas_click(self, event):
+        clicked = False
+        for tag, (x, y, r, node) in self.node_coords.items():
+            # Check if click is within the node circle
+            if (event.x - x) ** 2 + (event.y - y) ** 2 <= r ** 2:
+                self.selected_node = node
+                self.update_node_info()
+                self.update_view()
+                clicked = True
+                break
+        
+        if not clicked:
+            self.selected_node = None
+            self.update_node_info()
+            self.update_view()
+
+    def update_node_info(self):
+        if self.selected_node is None:
+            self.node_index_lbl.config(text="Node Index:        ?")
+            self.node_value_lbl.config(text="Node Value:        ?")
+            self.node_parent_lbl.config(text="Parent:              ?")
+            self.node_left_lbl.config(text="Left Child:         ?")
+            self.node_right_lbl.config(text="Right Child:       ?")
+        else:
+            index_val = self.selected_node.index if self.selected_node.index is not None else "?"
+            value_val = self.selected_node.value
+            parent_val = self.selected_node.parent.value if self.selected_node.parent else "None"
+            left_val = self.selected_node.left.value if self.selected_node.left and self.selected_node.left.value != " " else "None"
+            right_val = self.selected_node.right.value if self.selected_node.right and self.selected_node.right.value != " " else "None"
+            
+            self.node_index_lbl.config(text=f"Node Index:        {index_val}")
+            self.node_value_lbl.config(text=f"Node Value:        {value_val}")
+            self.node_parent_lbl.config(text=f"Parent:              {parent_val}")
+            self.node_left_lbl.config(text=f"Left Child:         {left_val}")
+            self.node_right_lbl.config(text=f"Right Child:       {right_val}")
+
     def update_view(self):
         count = len(self.tree_logic.nodes_list)
-        # Maintaining the format during updates
         self.node_count_lbl.config(text=f"Level {self.target_level} | Node: {count}/{self.max_nodes}")
         self.canvas.delete("all")
+        self.node_coords = {}
         if self.tree_logic.root:
             self.root.update_idletasks()
             w = self.canvas.winfo_width()
             self.draw_tree(self.tree_logic.root, w//2, 60, w//4)
-        
-        self.tlr_lbl.config(text=f"TLR: {' '.join(tlr(self.tree_logic.root))}")
-        self.ltr_lbl.config(text=f"LTR: {' '.join(ltr(self.tree_logic.root))}")
-        self.lrt_lbl.config(text=f"LRT: {' '.join(lrt(self.tree_logic.root))}")
 
     def draw_tree(self, node, x, y, offset):
         r = 20
@@ -328,8 +458,10 @@ class BinaryTreeUI:
                 self.canvas.create_line(x, y, x + offset, y + 80, fill=self.fg_navy, width=2)
             self.draw_tree(node.right, x + offset, y + 80, offset // 2)
         if node.value != " ":
-            self.canvas.create_oval(x-r, y-r, x+r, y+r, fill=self.accent_blue, outline=self.fg_navy, width=2)
+            color = "#FFE082" if node == self.selected_node else self.accent_blue
+            self.canvas.create_oval(x-r, y-r, x+r, y+r, fill=color, outline=self.fg_navy, width=2, tags=(f"node_{node.index}",))
             self.canvas.create_text(x, y, text=str(node.value), fill=self.fg_navy, font=("Georgia", 10, "bold"))
+            self.node_coords[f"node_{node.index}"] = (x, y, r, node)
 
 if __name__ == "__main__":
     root = tk.Tk()
