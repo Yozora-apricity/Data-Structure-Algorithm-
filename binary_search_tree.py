@@ -20,10 +20,10 @@ class BST:
     def _insert(self, node, value):
         if not node:
             return Node(value)
-        if value < node.value:
-            node.left = self._insert(node.left, value)
-        else:  # allow duplicates on right
+        if value > node.value:
             node.right = self._insert(node.right, value)
+        else:  # allow duplicates on left
+            node.left = self._insert(node.left, value)
         return node
 
     # LTR – Inorder
