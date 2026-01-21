@@ -229,25 +229,38 @@ class BinaryTreeUI:
         status_bar.pack_propagate(False)
 
         self.node_count_lbl = tk.Label(
-            status_bar, 
-            text=f"Level {level} | Node: 0/{self.max_nodes}", 
-            font=("Georgia", 12, "bold"), 
-            fg=self.fg_slate, 
+            status_bar,
+            text=f"Level {level} | Node: 0/{self.max_nodes}",
+            font=("Georgia", 12, "bold"),
+            fg=self.fg_slate,
             bg=self.bg_grey
         )
         self.node_count_lbl.pack(side=tk.LEFT, padx=15)
 
         tk.Label(
-            status_bar, 
-            text="ESC: Quit | Ctrl: Reset | Tab: Menu | Enter: Insert", 
-            font=("Georgia", 10), 
-            fg=self.fg_slate, 
+            status_bar,
+            text="ESC: Quit | Ctrl: Reset | Tab: Menu | Enter: Insert",
+            font=("Georgia", 10),
+            fg=self.fg_slate,
             bg=self.bg_grey
         ).pack(side=tk.RIGHT, padx=15)
 
+        self.message_container = tk.Frame(self.main_frame, bg=self.bg_white)
+        self.message_container.pack(fill=tk.X, pady=(15, 10))
+
+        self.completion_lbl = tk.Label(
+            self.message_container,
+            text="System Initialized...",
+            font=("Georgia", 14, "bold"),
+            bg=self.bg_white,
+            fg=self.fg_navy,
+            justify="center"
+        )
+        self.completion_lbl.pack(expand=True)
+
         # --- MAIN CONTENT ---
         container = tk.Frame(self.main_frame, bg=self.bg_white)
-        container.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        container.pack(fill=tk.BOTH, expand=True, padx=20, pady=(5, 20))
 
         # LEFT: CANVAS + TRAVERSAL RESULTS
         left_section = tk.Frame(container, bg=self.bg_white)
@@ -344,15 +357,18 @@ class BinaryTreeUI:
     def handle_input(self):
         if len(self.tree_logic.nodes_list) >= self.max_nodes: return
         char = self.input_entry.get()
+        display_char = char if char and char != "." else "EMPTY" #
         if char == "" or char == " " or char == ".": char = " "
         self.tree_logic.tree_level_value(char)
         self.input_entry.delete(0, tk.END)
+        self.completion_lbl.config(text=f"Node '{display_char}' added to system", fg=self.fg_navy) #
         self.update_view()
 
     def handle_random(self):
         if len(self.tree_logic.nodes_list) >= self.max_nodes: return
         char = str(random.randint(0, 99)) if random.random() > 0.5 else random.choice(string.ascii_uppercase)
         self.tree_logic.tree_level_value(char)
+        self.completion_lbl.config(text=f"Node '{char}' added to system", fg=self.fg_navy)
         self.update_view()
 
     def reset_game(self):
@@ -422,7 +438,7 @@ class BinaryTreeUI:
             self.node_index_lbl.config(text="Node Index:        ?")
             self.node_value_lbl.config(text="Node Value:        ?")
             self.node_parent_lbl.config(text="Parent:              ?")
-            self.node_left_lbl.config(text="Left Child:         ?")
+            self.node_left_lbl.config(text="Left Child:          ?")
             self.node_right_lbl.config(text="Right Child:       ?")
         else:
             index_val = self.selected_node.index if self.selected_node.index is not None else "?"
@@ -434,12 +450,16 @@ class BinaryTreeUI:
             self.node_index_lbl.config(text=f"Node Index:        {index_val}")
             self.node_value_lbl.config(text=f"Node Value:        {value_val}")
             self.node_parent_lbl.config(text=f"Parent:              {parent_val}")
-            self.node_left_lbl.config(text=f"Left Child:         {left_val}")
+            self.node_left_lbl.config(text=f"Left Child:          {left_val}")
             self.node_right_lbl.config(text=f"Right Child:       {right_val}")
 
     def update_view(self):
         count = len(self.tree_logic.nodes_list)
         self.node_count_lbl.config(text=f"Level {self.target_level} | Node: {count}/{self.max_nodes}")
+        
+        if count == self.max_nodes:
+            self.completion_lbl.config(text="BINARY TREE COMPLETED", fg="green", font=("Georgia", 14, "bold"))
+
         self.canvas.delete("all")
         self.node_coords = {}
         if self.tree_logic.root:
