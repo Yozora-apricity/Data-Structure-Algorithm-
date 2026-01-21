@@ -26,6 +26,21 @@ class BST:
             node.left = self._insert(node.left, value)
         return node
 
+# ---------------- BST SEEARCH ---------------- #
+
+    def search(self, value):
+        return self._search(self.root, value)
+
+    def _search(self, node, value):
+        if not node:
+            return False
+        if node.value == value:
+            return True
+        if value > node.value:
+            return self._search(node.right, value)
+        else:
+            return self._search(node.left, value)
+
     # LTR – Inorder
     def ltr(self, node, result):
         if node:
@@ -128,7 +143,6 @@ class BSTVisualizer:
         self.output = tk.Label(root, text="Traversal:", font=("Georgia", 12, "bold"), fg="#2C3E50")
         self.output.pack(pady=20)
 
-        # Initialize mode
         self.update_mode()
 
     # ---------- MODE HANDLING ----------
