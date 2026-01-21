@@ -86,7 +86,7 @@ class BinaryTreeOrder:
 class BinaryTreeUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("System Control Interface - Binary Tree")
+        self.root.title("Binary Tree")
         self.root.geometry("1200x900")
         
         # --- Formal Light Palette ---
