@@ -401,11 +401,17 @@ def main():
     pygame.init()
     pygame.font.init()
     
-    # MODIFIED: Set to FULLSCREEN using the monitor's native resolution
-    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN | pygame.DOUBLEBUF)
+    # --- MODIFIED SECTION START ---
+    # Get the current screen dimensions first
+    info = pygame.display.Info()
+    SCREEN_WIDTH = info.current_w
+    SCREEN_HEIGHT = info.current_h
     
-    # MODIFIED: Update global constants to match the actual fullscreen resolution
-    SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
+    # Use pygame.NOFRAME instead of pygame.FULLSCREEN.
+    # NOFRAME creates a borderless window that fits the screen, 
+    # which is friendlier to multitasking and prevents glitching.
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.NOFRAME | pygame.DOUBLEBUF)
+    # --- MODIFIED SECTION END ---
     
     pygame.display.set_caption("Tower of Hanoi Simulation")
     
