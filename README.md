@@ -38,7 +38,7 @@ A fully interactive BST visualizer.
 
 ## 🛠️ Technologies Used
 * **Python 3.x**
-* **Tkinter:** Built-in Python GUI library (used for Menus, Parking Sim, and Trees).
+* **Tkinter:** Built-in Python GUI library (used for Menus, Data Visual, and Trees).
 * **Pygame:** Library for multimedia applications (used for Tower of Hanoi).
 
 ---
